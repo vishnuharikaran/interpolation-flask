@@ -1,8 +1,7 @@
-from flask import Flask, render_template
+import streamlit as st
 import time
 import random
-
-app = Flask(__name__)
+import pandas as pd
 
 
 def interpolation_search(arr, target):
@@ -60,53 +59,62 @@ def performance_analysis():
 
     for size in sizes:
         arr = sorted(random.sample(range(size * 10), size))
-
         target = arr[random.randint(0, size - 1)]
 
         start = time.perf_counter()
-
         for _ in range(100):
-            idx_is, comp_is = interpolation_search(arr, target)
-
+            _, comp_is = interpolation_search(arr, target)
         is_time = (time.perf_counter() - start) / 100 * 1000
 
         start = time.perf_counter()
-
         for _ in range(100):
-            idx_bs, comp_bs = binary_search(arr, target)
-
+            _, comp_bs = binary_search(arr, target)
         bs_time = (time.perf_counter() - start) / 100 * 1000
 
         results.append({
-            "size": size,
-            "is_time": round(is_time, 4),
-            "bs_time": round(bs_time, 4),
-            "is_comp": comp_is,
-            "bs_comp": comp_bs
+            "Array Size": size,
+            "Interpolation Time (ms)": round(is_time, 4),
+            "Binary Time (ms)": round(bs_time, 4),
+            "Interpolation Comparisons": comp_is,
+            "Binary Comparisons": comp_bs
         })
 
-    return results
+    return pd.DataFrame(results)
 
 
-@app.route("/")
-def home():
+# UI
+st.title("Interpolation Search vs Binary Search")
 
-    arr = [2, 5, 10, 15, 23, 35, 48, 60, 75, 90, 105, 120]
-    target = 35
+arr = [2, 5, 10, 15, 23, 35, 48, 60, 75, 90, 105, 120]
 
-    idx, comps = interpolation_search(arr, target)
+st.write("### Sample Array")
+st.write(arr)
 
-    comparison = performance_analysis()
+target = st.number_input(
+    "Enter Target Value",
+    value=35,
+    step=1
+)
 
-    return render_template(
-        "index.html",
-        array=arr,
-        target=target,
-        index=idx,
-        comparisons=comps,
-        comparison=comparison
+idx, comps = interpolation_search(arr, target)
+
+st.write("### Search Result")
+
+if idx != -1:
+    st.success(f"Target found at index {idx}")
+else:
+    st.error("Target not found")
+
+st.write(f"Comparisons: {comps}")
+
+if st.button("Run Performance Analysis"):
+    df = performance_analysis()
+
+    st.write("### Performance Comparison")
+    st.dataframe(df)
+
+    st.line_chart(
+        df.set_index("Array Size")[
+            ["Interpolation Time (ms)", "Binary Time (ms)"]
+        ]
     )
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=8000)
